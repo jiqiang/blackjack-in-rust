@@ -2,17 +2,17 @@ extern crate rand;
 
 use rand::Rng;
 
-const SUITS: [Suit; 4] = [Suit::CLUBS, Suit::DIAMONDS, Suit::HEARTS, Suit::SPADES];
-const RANKS: [&'static str; 13] = [
+const SUITS: [Suit; 4] = [Suit::Clubs, Suit::Diamonds, Suit::Hearts, Suit::Spades];
+const RANKS: [&str; 13] = [
     "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
 ];
 
 #[derive(Debug, Clone)]
 enum Suit {
-    HEARTS,
-    DIAMONDS,
-    CLUBS,
-    SPADES,
+    Hearts,
+    Diamonds,
+    Clubs,
+    Spades,
 }
 
 #[derive(Debug)]
@@ -26,16 +26,20 @@ struct Game {
 }
 
 impl Game {
-    pub fn new() -> Self {
-        Game { cards: vec![] }
+    pub fn new(num_of_decks: u16, num_of_shuffles: u16, cut_at: usize) -> Self {
+        let mut cards: Vec<Card> = vec![];
+        Self::add_decks(&mut cards, num_of_decks);
+        Self::shuffle_cards(&mut cards, num_of_shuffles);
+        Self::cut_cards(&mut cards, cut_at);
+        Game { cards }
     }
 
-    pub fn add_decks(&mut self, num_of_decks: u8) {
-        let mut idx: u8 = 0;
+    fn add_decks(cards: &mut Vec<Card>, num_of_decks: u16) {
+        let mut idx: u16 = 0;
         while idx < num_of_decks {
             for &rank in RANKS.iter() {
                 for suit in SUITS.iter() {
-                    self.cards.push(Card {
+                    cards.push(Card {
                         suit: suit.clone(),
                         rank: rank.to_string(),
                     });
@@ -45,24 +49,24 @@ impl Game {
         }
     }
 
-    pub fn shuffle_cards(&mut self, num_of_shuffles: u8) {
-        let mut i: u8 = 0;
+    fn shuffle_cards(cards: &mut Vec<Card>, num_of_shuffles: u16) {
+        let mut i: u16 = 0;
         while i < num_of_shuffles {
-            let mut m = self.cards.len();
+            let mut m = cards.len();
             let mut rng = rand::thread_rng();
             while m > 1 {
                 m -= 1;
                 let r = rng.gen_range(0, m);
-                self.cards.swap(r, m);
+                cards.swap(r, m);
             }
             i += 1;
         }
     }
 
-    pub fn cut_cards(&mut self, middle: usize) {
-        let mut bottom = self.cards.split_off(middle);
-        bottom.append(&mut self.cards);
-        self.cards.append(&mut bottom);
+    fn cut_cards(cards: &mut Vec<Card>, middle: usize) {
+        let mut bottom = cards.split_off(middle);
+        bottom.append(cards);
+        cards.append(&mut bottom);
     }
 
     pub fn issue_card(&mut self) -> Option<Card> {
@@ -88,9 +92,9 @@ impl Player {
         self.cards.push(card);
     }
 
-    pub fn hand_value(&self) -> u8 {
-        let mut sum_without_aces: u8 = 0;
-        let mut num_of_aces: u8 = 0;
+    pub fn hand_value(&self) -> u16 {
+        let mut sum_without_aces: u16 = 0;
+        let mut num_of_aces: u16 = 0;
 
         for card in self.cards.iter() {
             match card.rank.as_str() {
@@ -114,7 +118,7 @@ impl Player {
 
         let sum_with_small_aces = sum_without_aces + num_of_aces;
 
-        // must check sum_with_small_aces > 21 otherwise 21 - sum_with_small_aces will panic if the result type is not a u8
+        // must check sum_with_small_aces > 21 otherwise 21 - sum_with_small_aces will panic if the result type is not a u16
         if sum_with_small_aces > 21 || 21 - sum_with_small_aces < 10 {
             return sum_with_small_aces;
         }
@@ -124,10 +128,7 @@ impl Player {
 }
 
 fn main() {
-    let mut game = Game::new();
-    game.add_decks(1);
-    game.shuffle_cards(5);
-    game.cut_cards(5);
+    let mut game = Game::new(3, 5, 22);
 
     let mut dealer = Player::new("Dealer");
     let mut player = Player::new("Glenn");
